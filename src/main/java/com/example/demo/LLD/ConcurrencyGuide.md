@@ -195,6 +195,41 @@ public void take() throws InterruptedException {
 
 📌 Always use `while`, never `if` (spurious wakeups).
 
+Extra
+
+```java
+private final Condition notFull = lock.newCondition();
+private final int capacity = 10;
+
+public void put(Object item) throws InterruptedException {
+    lock.lock();
+    try {
+        while (queue.size() == capacity) {
+            notFull.await(); // wait until space is available
+        }
+        queue.add(item);
+        notEmpty.signal();
+    } finally {
+        lock.unlock();
+    }
+}
+
+public Object take() throws InterruptedException {
+    lock.lock();
+    try {
+        while (queue.isEmpty()) {
+            notEmpty.await();
+        }
+        Object item = queue.remove();
+        notFull.signal(); // notify producers there's space now
+        return item;
+    } finally {
+        lock.unlock();
+    }
+}
+
+```
+
 ---
 
 ### 6.4 Producer–Consumer (Classic Interview Example)
